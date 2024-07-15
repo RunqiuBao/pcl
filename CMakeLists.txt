@@ -51,7 +51,8 @@ set(CMAKE_BUILD_TYPE "${CMAKE_BUILD_TYPE}" CACHE STRING
 # Compiler identification
 # Define a variable CMAKE_COMPILER_IS_X where X is the compiler short name.
 # Note: CMake automatically defines one for GNUCXX, nothing to do in this case.
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+# if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if (FALSE)
   set(CMAKE_COMPILER_IS_CLANG 1)
 elseif(__COMPILER_PATHSCALE)
   set(CMAKE_COMPILER_IS_PATHSCALE 1)
@@ -288,7 +289,7 @@ if("${is_system_dir}" STREQUAL "-1")
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/${LIB_INSTALL_DIR}")
 endif()
 
-### ---[ Find universal dependencies
+### ---[ Find universal dependencies\
 
 # OpenMP (optional)
 option(WITH_OPENMP "Build with parallelization using OpenMP" TRUE)
@@ -312,10 +313,15 @@ else()
 endif()
 
 # Threads (required)
+set(CMAKE_THREAD_LIBS_INIT "-lpthread")
+set(CMAKE_HAVE_THREADS_LIBRARY 1)
+set(CMAKE_USE_WIN32_THREADS_INIT 0)
+set(CMAKE_USE_PTHREADS_INIT 1)
+set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
 # Eigen3 (required)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 3.4 REQUIRED NO_MODULE)
 if(NOT EIGEN3_FOUND AND Eigen3_FOUND)
     set(EIGEN3_FOUND ${Eigen3_FOUND})
 endif()
@@ -336,14 +342,14 @@ if(WITH_LIBUSB)
   include("${PCL_SOURCE_DIR}/cmake/pcl_find_libusb.cmake")
 endif()
 
-# Dependencies for different grabbers
-PCL_ADD_GRABBER_DEPENDENCY("OpenNI" "OpenNI grabber support")
-PCL_ADD_GRABBER_DEPENDENCY("OpenNI2" "OpenNI2 grabber support")
-PCL_ADD_GRABBER_DEPENDENCY("Ensenso" "IDS-Imaging Ensenso camera support")
-PCL_ADD_GRABBER_DEPENDENCY("davidSDK" "David Vision Systems SDK support")
-PCL_ADD_GRABBER_DEPENDENCY("DSSDK" "DepthSense SDK support")
-PCL_ADD_GRABBER_DEPENDENCY("RSSDK" "RealSense SDK support")
-PCL_ADD_GRABBER_DEPENDENCY("RSSDK2" "RealSense SDK 2.0 (librealsense) support")
+# # Dependencies for different grabbers
+# PCL_ADD_GRABBER_DEPENDENCY("OpenNI" "OpenNI grabber support")
+# PCL_ADD_GRABBER_DEPENDENCY("OpenNI2" "OpenNI2 grabber support")
+# PCL_ADD_GRABBER_DEPENDENCY("Ensenso" "IDS-Imaging Ensenso camera support")
+# PCL_ADD_GRABBER_DEPENDENCY("davidSDK" "David Vision Systems SDK support")
+# PCL_ADD_GRABBER_DEPENDENCY("DSSDK" "DepthSense SDK support")
+# PCL_ADD_GRABBER_DEPENDENCY("RSSDK" "RealSense SDK support")
+# PCL_ADD_GRABBER_DEPENDENCY("RSSDK2" "RealSense SDK 2.0 (librealsense) support")
 
 # metslib
 if(PKG_CONFIG_FOUND)
@@ -381,7 +387,6 @@ option(WITH_CUDA "Build NVIDIA-CUDA support" TRUE)
 if(WITH_CUDA)
   include("${PCL_SOURCE_DIR}/cmake/pcl_find_cuda.cmake")
 endif()
-
 
 # Reset VTK_FOUND to off
 set(VTK_FOUND OFF)
