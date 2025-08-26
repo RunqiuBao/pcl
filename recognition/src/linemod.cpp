@@ -176,7 +176,8 @@ void
 pcl::LINEMOD::removeOverlappingDetections (
     std::vector<LINEMODDetection> & detections,
     size_t translation_clustering_threshold,
-    float rotation_clustering_threshold) const
+    float rotation_clustering_threshold,
+    ClusteringMethod clusteringMethod) const
 {
   // check if clustering is disabled
   if (translation_clustering_threshold == 0 && rotation_clustering_threshold == 0.f) {
@@ -236,6 +237,7 @@ pcl::LINEMOD::removeOverlappingDetections (
 
   typedef std::tuple<size_t, size_t, size_t> ClusteringKey;
   std::map<ClusteringKey, std::vector<size_t>> clusters;
+  std::map<ClusteringKey, int> index_to_best_score_in_cluster;
   for (size_t detection_id = 0; detection_id < nr_detections; ++detection_id)
   {
     const LINEMODDetection& d = detections[detection_id];
@@ -246,76 +248,89 @@ pcl::LINEMOD::removeOverlappingDetections (
     };
 
     clusters[key].push_back(detection_id);
+    if(detections[detection_id].score > detections[clusters[key][index_to_best_score_in_cluster[key]]].score) {
+      index_to_best_score_in_cluster[key] = clusters[key].size() - 1;
+    }
   }
 
   // compute detection representatives for every cluster
   std::vector<LINEMODDetection> clustered_detections;
   size_t cluster_id;
   std::map<ClusteringKey, std::vector<size_t>>::iterator it;
-  for (cluster_id = 0, it = clusters.begin(); it != clusters.end(); ++cluster_id, ++it)
+  std::map<ClusteringKey, int>::iterator itindex_to_best_score_in_cluster;
+  for (cluster_id = 0, it = clusters.begin(), itindex_to_best_score_in_cluster = index_to_best_score_in_cluster.begin(); it != clusters.end(); ++cluster_id, ++it, ++itindex_to_best_score_in_cluster)
   {
-    const std::vector<size_t>& cluster = it->second;
-    float weight_sum = 0.0f;
-
-    float average_score = 0.0f;
-    float average_scale = 0.0f;
-    float average_rx = 0.0f;
-    float average_ry = 0.0f;
-    float average_rz = 0.0f;
-    float average_region_x = 0.0f;
-    float average_region_y = 0.0f;
-
-    const size_t elements_in_cluster = cluster.size ();
-    for (size_t cluster_index = 0; cluster_index < elements_in_cluster; ++cluster_index)
-    {
-      const size_t detection_id = cluster[cluster_index];
-      const LINEMODDetection& d = detections[detection_id];
-      const pcl::SparseQuantizedMultiModTemplate& template_ = templates_[d.template_id];
-
-      const float weight = d.score * d.score;
-
-      weight_sum += weight;
-
-      average_score += d.score * weight;
-      average_scale += d.scale * weight;
-      average_rx += template_.rx * weight;
-      average_ry += template_.ry * weight;
-      average_rz += template_.rz * weight;
-      average_region_x += static_cast<float>(d.x) * weight;
-      average_region_y += static_cast<float>(d.y) * weight;
-    }
-
-    const float inv_weight_sum = 1.0f / weight_sum;
-
-    average_rx *= inv_weight_sum;
-    average_ry *= inv_weight_sum;
-    average_rz *= inv_weight_sum;
-
-    float min_dist2 = std::numeric_limits<float>::max ();
-    size_t best_template_id = detections[cluster[0]].template_id;
-    for (size_t template_index = 0; template_index < n_templates; ++template_index)
-    {
-      // Skip templates that does not belong to the same cluster
-      // This is also important to protect wrong ID assignment in case all rotations are not set, thus ended up to have the same distance
-      if (clusteredTemplates[best_template_id] != clusteredTemplates[template_index]) {
-        continue;
-      }
-
-      const pcl::SparseQuantizedMultiModTemplate& template_ = templates_[template_index];
-      const float dist2 = std::pow(template_.rx - average_rx, 2) + std::pow(template_.ry - average_ry, 2) + std::pow(template_.rz - average_rz, 2);
-      if (dist2 < min_dist2)
-      {
-        min_dist2 = dist2;
-        best_template_id = template_index;
-      }
-    }
-
     LINEMODDetection detection;
-    detection.template_id = best_template_id;
-    detection.score = average_score * inv_weight_sum * std::exp(-0.5f / elements_in_cluster);
-    detection.scale = average_scale * inv_weight_sum;
-    detection.x = int (average_region_x * inv_weight_sum);
-    detection.y = int (average_region_y * inv_weight_sum);
+    const std::vector<size_t>& cluster = it->second;
+    if (clusteringMethod == ClusteringMethod::MERGE_ALL) {
+      float weight_sum = 0.0f;
+
+      float average_score = 0.0f;
+      float average_scale = 0.0f;
+      float average_rx = 0.0f;
+      float average_ry = 0.0f;
+      float average_rz = 0.0f;
+      float average_region_x = 0.0f;
+      float average_region_y = 0.0f;
+
+      const size_t elements_in_cluster = cluster.size ();
+      for (size_t cluster_index = 0; cluster_index < elements_in_cluster; ++cluster_index)
+      {
+        const size_t detection_id = cluster[cluster_index];
+        const LINEMODDetection& d = detections[detection_id];
+        const pcl::SparseQuantizedMultiModTemplate& template_ = templates_[d.template_id];
+
+        const float weight = d.score * d.score;
+
+        weight_sum += weight;
+
+        average_score += d.score * weight;
+        average_scale += d.scale * weight;
+        average_rx += template_.rx * weight;
+        average_ry += template_.ry * weight;
+        average_rz += template_.rz * weight;
+        average_region_x += static_cast<float>(d.x) * weight;
+        average_region_y += static_cast<float>(d.y) * weight;
+      }
+
+      const float inv_weight_sum = 1.0f / weight_sum;
+
+      average_rx *= inv_weight_sum;
+      average_ry *= inv_weight_sum;
+      average_rz *= inv_weight_sum;
+
+      float min_dist2 = std::numeric_limits<float>::max ();
+      size_t best_template_id = detections[cluster[0]].template_id;
+      for (size_t template_index = 0; template_index < n_templates; ++template_index)
+      {
+        // Skip templates that does not belong to the same cluster
+        // This is also important to protect wrong ID assignment in case all rotations are not set, thus ended up to have the same distance
+        if (clusteredTemplates[best_template_id] != clusteredTemplates[template_index]) {
+          continue;
+        }
+
+        const pcl::SparseQuantizedMultiModTemplate& template_ = templates_[template_index];
+        const float dist2 = std::pow(template_.rx - average_rx, 2) + std::pow(template_.ry - average_ry, 2) + std::pow(template_.rz - average_rz, 2);
+        if (dist2 < min_dist2)
+        {
+          min_dist2 = dist2;
+          best_template_id = template_index;
+        }
+      }
+
+      detection.template_id = best_template_id;
+      detection.score = average_score * inv_weight_sum * std::exp(-0.5f / elements_in_cluster);
+      detection.scale = average_scale * inv_weight_sum;
+      detection.x = int (average_region_x * inv_weight_sum);
+      detection.y = int (average_region_y * inv_weight_sum);
+    }
+    else if (clusteringMethod == ClusteringMethod::RETURN_BEST) {
+      detection = detections[cluster[itindex_to_best_score_in_cluster->second]];
+    }
+    else {
+      PCL_ERROR ("[removeOverlappingDetections] Unknown clustering method %d. Return Empty Detections.\n", static_cast<int>(clusteringMethod));
+      return;
+    }
 
     clustered_detections.push_back (detection);
   }

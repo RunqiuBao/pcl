@@ -368,11 +368,18 @@ namespace pcl
       groupAndSortOverlappingDetections (const std::vector<LINEMODDetection> & detections,
                                          std::vector<std::vector<LINEMODDetection>>& grouped_detections,
                                          const size_t grouping_threshold) const;
+      
+      enum class ClusteringMethod
+      {
+        RETURN_BEST,
+        MERGE_ALL
+      };
 
       void
       removeOverlappingDetections (std::vector<LINEMODDetection> & detections,
                                    size_t translation_clustering_threshold,
-                                   float rotation_clustering_threshold) const;
+                                   float rotation_clustering_threshold,
+                                   ClusteringMethod clusteringMethod = ClusteringMethod::RETURN_BEST) const;
 
       void
       sortDetections (std::vector<LINEMODDetection> & detections) const;
