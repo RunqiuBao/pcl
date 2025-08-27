@@ -371,15 +371,15 @@ namespace pcl
       
       enum class ClusteringMethod
       {
-        RETURN_BEST,
-        MERGE_ALL
+        NON_MAX_SUPPRESSION,
+        ARVERAGE_AND_MERGE
       };
 
       void
       removeOverlappingDetections (std::vector<LINEMODDetection> & detections,
                                    size_t translation_clustering_threshold,
                                    float rotation_clustering_threshold,
-                                   ClusteringMethod clusteringMethod = ClusteringMethod::RETURN_BEST) const;
+                                   ClusteringMethod clusteringMethod = ClusteringMethod::NON_MAX_SUPPRESSION) const;
 
       void
       sortDetections (std::vector<LINEMODDetection> & detections) const;
