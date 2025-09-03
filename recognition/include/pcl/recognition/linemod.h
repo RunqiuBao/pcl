@@ -369,7 +369,7 @@ namespace pcl
                                          std::vector<std::vector<LINEMODDetection>>& grouped_detections,
                                          const size_t grouping_threshold) const;
       
-      enum class ClusteringMethod
+      enum class ClusteringMethod: int
       {
         NON_MAX_SUPPRESSION,
         ARVERAGE_AND_MERGE
